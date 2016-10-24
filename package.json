@@ -1,0 +1,18 @@
+{
+  "name": "BioCoreTekApp2016",
+  "version": "0.0.1",
+  "private": true,
+  "description": "A new frontier in biology and technology.",
+  "main": "private/js/spaceServer.js",
+  "author": "BioCoreTek",
+  "license": "Proprietary",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BioCoreTek/App2016.git"
+  },
+  "dependencies": {
+    "express": "^4.14.0",
+    "socket.io": "^1.5.0"
+  },
+  "scripts": {}
+}
