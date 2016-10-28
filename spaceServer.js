@@ -5,10 +5,30 @@
 
 //includes...
 var express = require('express');
+var fs = require('fs');
 var app = express();
 var server = require('http').createServer(app);
 var io = require('socket.io')(server);
 var port = process.env.PORT || 3000;
+
+var logpath = ".";
+
+var GameLog = function(name)
+{
+	this.name = name;
+	this.start = Date.now() / 1000 | 0;
+	this.filename = logpath + "/gamelog." + name +this.start + ".txt";
+}
+
+GameLog.prototype.log = function(message)
+{
+	var now = (Date.now() / 1000 |0) - this.start;
+	var min = now / 60 |0;
+	var sec = now - (min * 60);
+	var pad = (sec < 10) ? "0" : "";
+	fs.appendFileSync(this.filename, min + ":" + pad + sec + " " + message+"\r\n");
+	console.log(message);
+}
 
 server.listen(port, function () {
 	console.log('Server listening at port %d', port);
@@ -31,11 +51,10 @@ var stateDelay = {
 //this is based on some example chat client out on the interweb...
 // known page ids: 'ipadShields', 'appConsole'
 var numUsers = 0;
+var addedUser = false;
+var gamelog = null;
 
 io.on('connection', function (socket) {
-	var addedUser = false;
-
-
 	//create a timer -- maybe transmit a pulse every 30 seconds?
 	setInterval(function(){
 		var now = Date.now();
@@ -49,6 +68,7 @@ io.on('connection', function (socket) {
 	// when the client emits 'new message', this listens and executes
 	socket.on('new message', function (data) {
 
+		gamelog.log("debug: "+JSON.stringify(data));
 		console.log('new message', data);
 
 		if (data.event)
@@ -61,6 +81,7 @@ io.on('connection', function (socket) {
 						switch (data.command)
 						{
 							case 'start':
+								gamelog.log("Game started");
 								io.sockets.emit('new message', {
 									username: socket.username,
 									message: {
@@ -68,6 +89,10 @@ io.on('connection', function (socket) {
 										command: 'start'
 									}
 								});
+								break;
+							case 'stop':
+								gamelog.log("Game over");
+								addedUser = false;
 								break;
 						}
 					}
@@ -79,6 +104,7 @@ io.on('connection', function (socket) {
 						switch (data.command)
 						{
 							case 'start':
+								gamelog.log("Task started");
 								break;
 							case 'check':
 								if (data.data && data.data.result && data.data.taskname)
@@ -92,7 +118,12 @@ io.on('connection', function (socket) {
 												data.data.result[2] == taskSolutions[data.data.taskname][2] &&
 												data.data.result[3] == taskSolutions[data.data.taskname][3])
 											{
+												gamelog.log("TaskLifesupport success");
 												res = true;
+											}
+											else
+											{
+												gamelog.log("TaskLifesupport incorrect");
 											}
 											console.log(data.data.taskname + ' res:', res);
 											// doesn't work
@@ -118,9 +149,11 @@ io.on('connection', function (socket) {
 									switch (data.data.taskname)
 									{
 										case 'TaskSchematicsRendering':
+											gamelog.log("TaskSchematicsRendering stop");
 											console.log('TaskSchematicsRendering setting Timeout');
 											setTimeout(function() {
 												console.log('Timeout done TaskSchematicsRendering');
+												gamelog.log("TaskLifesupport set");
 												io.sockets.emit('new message', {
 													username: socket.username,
 													message: {
@@ -164,6 +197,8 @@ io.on('connection', function (socket) {
 		addedUser = true;
 
 		console.log('user register', socket.username);
+		gamelog = new GameLog(socket.username);
+		gamelog.log("Ready for Game");
 
 		// echo globally (all clients) that a person has connected
 		socket.broadcast.emit('user joined', {
