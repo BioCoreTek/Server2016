@@ -36,10 +36,6 @@ GameLog.prototype.log = function(message)
 var taskSolutions = {};
 var stateDelay = {};
 
-//these represent different 'pages' that have registered;
-//effectively 'users' are 'pages'
-//this is based on some example chat client out on the interweb...
-// known page ids: 'ipadShields', 'appConsole'
 var teamName = null;
 var gamelog = null;
 var status = "Not playing";
@@ -125,8 +121,8 @@ function handleMessage(socket, data)
 		else if (data.command == "start") handleGameStart(socket, data);
 		else if (data.command == "stop") handleGameStop(socket, data);
 		else if (data.command == "dev") handleGameDev(socket, data);
-  	else if (data.command == "normal") handleGameNormal(socket, data);
-  }
+		else if (data.command == "normal") handleGameNormal(socket, data);
+	}
 	else if (data.event == "task")
 	{
 		if (!data.command) return;
