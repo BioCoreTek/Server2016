@@ -19,7 +19,8 @@ app.use(express.static(__dirname + '/public'));
 
 // task solutions
 var taskSolutions = {
-	'TaskLifesupport': [43, 43, 43, 43]
+	'TaskLifesupport': [43, 43, 43, 43],
+	'TaskCommunicationsUnreachable': ['fa-star', 'fa-star', 'fa-star', 'fa-star']
 };
 // state delay - wait until calling on another state, in milliseconds
 var stateDelay = {
@@ -86,6 +87,7 @@ io.on('connection', function (socket) {
 									switch (data.data.taskname)
 									{
 										case 'TaskLifesupport':
+										case 'TaskCommunicationsUnreachable':
 											var res = false;
 											if (data.data.result[0] == taskSolutions[data.data.taskname][0] &&
 												data.data.result[1] == taskSolutions[data.data.taskname][1] &&
