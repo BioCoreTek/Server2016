@@ -1,7 +1,7 @@
 /**
  * Created by jeffdaze on 2016-09-10.
  */
-
+var DEV = true;
 
 //includes...
 var express = require('express');
@@ -37,15 +37,30 @@ server.listen(port, function () {
 //set up public path (this is super standard for express)
 app.use(express.static(__dirname + '/public'));
 
+
+
 // task solutions
 var taskSolutions = {
-	'TaskLifesupport': [43, 43, 43, 43],
-	'TaskCommunicationsUnreachable': ['fa-star', 'fa-star', 'fa-star', 'fa-star']
+	'TaskLifesupport': [12, 76, 27, 53],
+	'TaskCommunicationsUnreachable': ['fa-asterisk', 'fa-paper-plane', 'fa-plus-square', 'fa-magnet']
 };
 // state delay - wait until calling on another state, in milliseconds
 var stateDelay = {
-	'TaskSchematicsRendering': 5000//180000	// 3 minutes
+	'TaskSchematicsRendering': 180000	// 3 minutes
 }
+
+if (DEV)
+{
+	var taskSolutions = {
+		'TaskLifesupport': [43, 43, 43, 43],
+		'TaskCommunicationsUnreachable': ['fa-star', 'fa-star', 'fa-star', 'fa-star']
+	};
+	var stateDelay = {
+		'TaskSchematicsRendering': 5000
+	}
+}
+
+
 
 //these represent different 'pages' that have registered;
 //effectively 'users' are 'pages'
@@ -120,12 +135,12 @@ io.on('connection', function (socket) {
 												data.data.result[2] == taskSolutions[data.data.taskname][2] &&
 												data.data.result[3] == taskSolutions[data.data.taskname][3])
 											{
-												gamelog.log("TaskLifesupport success");
+												gamelog.log(data.data.taskname + " success");
 												res = true;
 											}
 											else
 											{
-												gamelog.log("TaskLifesupport incorrect");
+												gamelog.log(data.data.taskname + " incorrect");
 											}
 											console.log(data.data.taskname + ' res:', res);
 											// doesn't work
