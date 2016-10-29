@@ -32,15 +32,31 @@ GameLog.prototype.log = function(message)
 
 ///////////////////
 // CONFIG
+var DEV = true;
 
 // task solutions
 var taskSolutions = {
-	'TaskLifesupport': [43, 43, 43, 43]
+	'TaskLifesupport': [12, 76, 27, 53],
+	'TaskCommunicationsUnreachable': ['fa-asterisk', 'fa-paper-plane', 'fa-plus-square', 'fa-magnet'],
+	'TaskAibadPigpen': ['E', 'L', 'E', 'M', 'E', 'N', 'T', 'P', 'R', 'O', 'D', 'U', 'C', 'T']
 };
 // state delay - wait until calling on another state, in milliseconds
 var stateDelay = {
-	'TaskSchematicsRendering': 5000//180000	// 3 minutes
+	'TaskSchematicsRendering': 180000
 }
+
+if (DEV)
+{
+	var taskSolutions = {
+			'TaskLifesupport': [43, 43, 43, 43],
+			'TaskCommunicationsUnreachable': ['fa-star', 'fa-star', 'fa-star', 'fa-star'],
+			'TaskAibadPigpen': ['G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G']
+		};
+		var stateDelay = {
+			'TaskSchematicsRendering': 5000
+		}
+}
+
 //these represent different 'pages' that have registered;
 //effectively 'users' are 'pages'
 //this is based on some example chat client out on the interweb...
@@ -135,18 +151,26 @@ function handleTaskCheck(socket, data)
 		switch (data.data.taskname)
 		{
 			case 'TaskLifesupport':
+			case 'TaskCommunicationsUnreachable':
+			case 'TaskAibadPigpen':
 				var res = false;
-				if (data.data.result[0] == taskSolutions[data.data.taskname][0] &&
-					data.data.result[1] == taskSolutions[data.data.taskname][1] &&
-					data.data.result[2] == taskSolutions[data.data.taskname][2] &&
-					data.data.result[3] == taskSolutions[data.data.taskname][3])
-				{
-					gamelog.log("TaskLifesupport success");
-					res = true;
+				var rescnt = taskSolutions[data.data.taskname].length;
+				// check each result
+				if (data.data.result.length == rescnt) {
+					var bad = false;
+					for (var i = 0 ; i < rescnt; i++) {
+						if (data.data.result[i] != taskSolutions[data.data.taskname][i]) {
+							bad = true;
+							break;
+						}
+					}
+					if (!bad) {
+						res = true;
+						gamelog.log(data.data.taskname + " success");
+					}
 				}
-				else
-				{
-					gamelog.log("TaskLifesupport incorrect");
+				if (!res) {
+					gamelog.log(data.data.taskname + " incorrect");
 				}
 				console.log(data.data.taskname + ' res:', res);
 				// doesn't work
