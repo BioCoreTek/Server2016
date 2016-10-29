@@ -42,7 +42,8 @@ app.use(express.static(__dirname + '/public'));
 // task solutions
 var taskSolutions = {
 	'TaskLifesupport': [12, 76, 27, 53],
-	'TaskCommunicationsUnreachable': ['fa-asterisk', 'fa-paper-plane', 'fa-plus-square', 'fa-magnet']
+	'TaskCommunicationsUnreachable': ['fa-asterisk', 'fa-paper-plane', 'fa-plus-square', 'fa-magnet'],
+	'TaskAibadPigpen': ['E', 'L', 'E', 'M', 'E', 'N', 'T', 'P', 'R', 'O', 'D', 'U', 'C', 'T']
 };
 // state delay - wait until calling on another state, in milliseconds
 var stateDelay = {
@@ -53,7 +54,8 @@ if (DEV)
 {
 	var taskSolutions = {
 		'TaskLifesupport': [43, 43, 43, 43],
-		'TaskCommunicationsUnreachable': ['fa-star', 'fa-star', 'fa-star', 'fa-star']
+		'TaskCommunicationsUnreachable': ['fa-star', 'fa-star', 'fa-star', 'fa-star'],
+		'TaskAibadPigpen': ['G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G']
 	};
 	var stateDelay = {
 		'TaskSchematicsRendering': 5000
@@ -129,16 +131,28 @@ io.on('connection', function (socket) {
 									{
 										case 'TaskLifesupport':
 										case 'TaskCommunicationsUnreachable':
+										case 'TaskAibadPigpen':
 											var res = false;
-											if (data.data.result[0] == taskSolutions[data.data.taskname][0] &&
-												data.data.result[1] == taskSolutions[data.data.taskname][1] &&
-												data.data.result[2] == taskSolutions[data.data.taskname][2] &&
-												data.data.result[3] == taskSolutions[data.data.taskname][3])
+											var rescnt = taskSolutions[data.data.taskname].length;
+											// check each result
+											if (data.data.result.length == rescnt)
 											{
-												gamelog.log(data.data.taskname + " success");
-												res = true;
+												var bad = false;
+												for (var i = 0 ; i < rescnt; i++)
+												{
+													if (data.data.result[i] != taskSolutions[data.data.taskname][i])
+													{
+														bad = true;
+														break;
+													}
+												}
+												if (!bad)
+												{
+													res = true;
+													gamelog.log(data.data.taskname + " success");
+												}
 											}
-											else
+											if (!res)
 											{
 												gamelog.log(data.data.taskname + " incorrect");
 											}
