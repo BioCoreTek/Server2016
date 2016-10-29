@@ -32,30 +32,9 @@ GameLog.prototype.log = function(message)
 
 ///////////////////
 // CONFIG
-var DEV = true;
-
 // task solutions
-var taskSolutions = {
-	'TaskLifesupport': [12, 76, 27, 53],
-	'TaskCommunicationsUnreachable': ['fa-asterisk', 'fa-paper-plane', 'fa-plus-square', 'fa-magnet'],
-	'TaskAibadPigpen': ['E', 'L', 'E', 'M', 'E', 'N', 'T', 'P', 'R', 'O', 'D', 'U', 'C', 'T']
-};
-// state delay - wait until calling on another state, in milliseconds
-var stateDelay = {
-	'TaskSchematicsRendering': 180000
-}
-
-if (DEV)
-{
-	var taskSolutions = {
-			'TaskLifesupport': [43, 43, 43, 43],
-			'TaskCommunicationsUnreachable': ['fa-star', 'fa-star', 'fa-star', 'fa-star'],
-			'TaskAibadPigpen': ['G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G']
-		};
-		var stateDelay = {
-			'TaskSchematicsRendering': 5000
-		}
-}
+var taskSolutions = {};
+var stateDelay = {};
 
 //these represent different 'pages' that have registered;
 //effectively 'users' are 'pages'
@@ -64,6 +43,7 @@ if (DEV)
 var teamName = null;
 var gamelog = null;
 var status = "Not playing";
+var dev = false;
 
 //////////////
 // 
@@ -81,6 +61,7 @@ function doStatus(socket)
 	var data = {};
 	if (teamName) data.team = teamName;
 	data.status = status;
+	data.devmode = dev;
 	socket.broadcast.emit('status', data);
 }
 
@@ -103,8 +84,39 @@ function handleDisconnect(socket, data)
   console.log('disconnection');
 }
 
+function handleGameDev(socket, data)
+{
+	if (dev) return;
+	dev = true;
+	taskSolutions = {
+		'TaskLifesupport': [43, 43, 43, 43],
+		'TaskCommunicationsUnreachable': ['fa-star', 'fa-star', 'fa-star', 'fa-star'],
+		'TaskAibadPigpen': ['G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G']
+	};
+	stateDelay = {
+		'TaskSchematicsRendering': 5000
+	}
+	io.sockets.emit('new message', { username: teamName, message: { event: 'game', command: 'dev' } });
+}
+
+function handleGameNormal(socket, data)
+{
+	if (!dev) return;
+	dev = false;
+	taskSolutions = {
+		'TaskLifesupport': [12, 76, 27, 53],
+		'TaskCommunicationsUnreachable': ['fa-asterisk', 'fa-paper-plane', 'fa-plus-square', 'fa-magnet'],
+		'TaskAibadPigpen': ['E', 'L', 'E', 'M', 'E', 'N', 'T', 'P', 'R', 'O', 'D', 'U', 'C', 'T']
+	};
+	stateDelay = {
+		'TaskSchematicsRendering': 180000
+	}
+	io.sockets.emit('new message', { username: teamName, message: { event: 'game', command: 'normal' } });
+}
+
 function handleMessage(socket, data)
 {
+	if (!teamName) return;
 	gamelog.log("debug: "+JSON.stringify(data));
 	console.log('new message', data);
 
@@ -114,7 +126,9 @@ function handleMessage(socket, data)
 		if (!data.command) return;
 		else if (data.command == "start") handleGameStart(socket, data);
 		else if (data.command == "stop") handleGameStop(socket, data);
-	}
+		else if (data.command == "dev") handleGameDev(socket, data);
+  	else if (data.command == "normal") handleGameNormal(socket, data);
+  }
 	else if (data.event == "task")
 	{
 		if (!data.command) return;
@@ -232,6 +246,8 @@ function handleTaskStop(socket, data)
 
 //////////////
 // MAIN
+handleGameNormal();
+
 var app = express();
 app.use(express.static(__dirname + '/public'));
 
