@@ -86,7 +86,6 @@ function handleDisconnect(socket, data)
 
 function handleGameDev(socket, data)
 {
-	if (dev) return;
 	dev = true;
 	taskSolutions = {
 		'TaskLifesupport': [43, 43, 43, 43],
@@ -96,12 +95,11 @@ function handleGameDev(socket, data)
 	stateDelay = {
 		'TaskSchematicsRendering': 5000
 	}
-	io.sockets.emit('new message', { username: teamName, message: { event: 'game', command: 'dev' } });
+	if (teamName) io.sockets.emit('new message', { username: teamName, message: { event: 'game', command: 'dev' } });
 }
 
 function handleGameNormal(socket, data)
 {
-	if (!dev) return;
 	dev = false;
 	taskSolutions = {
 		'TaskLifesupport': [12, 76, 27, 53],
@@ -111,7 +109,7 @@ function handleGameNormal(socket, data)
 	stateDelay = {
 		'TaskSchematicsRendering': 180000
 	}
-	io.sockets.emit('new message', { username: teamName, message: { event: 'game', command: 'normal' } });
+	if (teamName) io.sockets.emit('new message', { username: teamName, message: { event: 'game', command: 'normal' } });
 }
 
 function handleMessage(socket, data)
