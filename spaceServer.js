@@ -169,6 +169,7 @@ function handleTaskStart(socket, data)
 			case 'TaskShieldPress':
 				pressID += 1;
 				gamelog.log("Shield press started");
+				io.sockets.emit("new message", { event: "task", command: "start", data: { taskname: "TaskShieldPress" } }); // tell everyone
 				pressStart = Date.now();
 				setTimeout(function () { checkShieldResult(pressID); }, stateDelay.TaskShield);
 				break;
@@ -257,6 +258,7 @@ function handleTaskStop(socket, data)
 		{
 			case 'TaskShieldPress':
 				if (!shieldActive) break;
+				io.sockets.emit("new message", { event: "task", command: "stop", data: { taskname: "TaskShieldPress" } }); // tell everyone
 				if (Date.now() - pressStart > stateDelay.TaskShield)
 				{
 					gamelog.log("Shield press stopped - good!");
