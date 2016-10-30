@@ -99,7 +99,7 @@ function handleGameDev(socket, data)
 	};
 	stateDelay = {
 		'TaskSchematicsRendering': 5000,
-		'TaskShield': 2000
+		'TaskShield': 15000
 	}
 	if (teamName) io.sockets.emit('new message', { username: teamName, message: { event: 'game', command: 'dev' } });
 }
@@ -113,8 +113,8 @@ function handleGameNormal(socket, data)
 		'TaskAibadPigpen': ['E', 'L', 'E', 'M', 'E', 'N', 'T', 'P', 'R', 'O', 'D', 'U', 'C', 'T']
 	};
 	stateDelay = {
-		'TaskSchematicsRendering': 180000,
-		'TaskShield': 120000
+		'TaskSchematicsRendering': 180000,	// 3 minutes
+		'TaskShield': 120000	// 2 minutes
 	}
 	if (teamName) io.sockets.emit('new message', { username: teamName, message: { event: 'game', command: 'normal' } });
 }
@@ -194,12 +194,12 @@ function handleTaskStart(socket, data)
 	}
 }
 
-function checkShieldResult(id)
+function checkShieldResult()
 {
-	gamelog.log("checking shields result");
+	gamelog.log("TaskIpadshieldsManual checking shields result");
 	if (Date.now() - shieldsPressStartTime > stateDelay.TaskShield)
 	{
-		gamelog.log("shield times up - checking...");
+		gamelog.log("TaskIpadshieldsManual shield times up");
 		sendShieldResult(true);
 	}
 }
@@ -278,6 +278,7 @@ function handleTaskCheck(socket, data)
 				if (!shieldsActive) break;
 				if (data.data.result == "press")
 				{
+					gamelog.log("TaskIpadshieldsManual press");
 					shieldsPressStartTime = Date.now();
 					shieldsTimeout = setTimeout(function () { checkShieldResult(); }, stateDelay.TaskShield);
 				}
@@ -285,6 +286,7 @@ function handleTaskCheck(socket, data)
 				{
 					// if we released the button and the timeout didn't end
 					// it wasn't long enough
+					gamelog.log("TaskIpadshieldsManual release");
 					clearTimeout(shieldsTimeout);
 					shieldsPressStartTime = 0;
 				}
@@ -314,7 +316,6 @@ function handleTaskStop(socket, data)
 		{
 			case 'TaskSchematicsRendering':
 				gamelog.log("TaskSchematicsRendering stop");
-				console.log('TaskSchematicsRendering setting Timeout');
 				setTimeout(function() {
 					console.log('Timeout done TaskSchematicsRendering');
 					gamelog.log("TaskLifesupport set");
@@ -344,7 +345,6 @@ function handleTaskStop(socket, data)
 			case 'TaskShieldsManual':
 				// app task stopped - tell the ipad to stop
 				gamelog.log("TaskShieldsManual stop");
-				console.log('TaskShieldsManual stop');
 				shieldsActive = false;
 				break;
 		}
