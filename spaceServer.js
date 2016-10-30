@@ -40,9 +40,13 @@ var teamName = null;
 var gamelog = null;
 var status = "Not playing";
 var dev = false;
-var pressStart = 0;
-var shieldActive = true;
-var pressID = 1;
+
+// time shield was pressed
+var shieldsPressStartTime = 0;
+// if the shield task is enabled
+var shieldsActive = false;
+// timeout to clear for shields
+var shieldsTimeout = null;
 
 //////////////
 // 
@@ -75,8 +79,8 @@ function handleUser(socket, data)
 	gamelog = new GameLog(teamName);
 	gamelog.log("Ready for Game");
 	status = "Ready to play";
-	pressStart = 0;
-	shieldActive = false;
+	shieldsPressStartTime = 0;
+	shieldsActive = false;
 	io.sockets.emit('new message', { username: teamName, message: { event: 'game', command: 'ready' } });
 }
 
@@ -161,8 +165,9 @@ function handleTaskStart(socket, data)
 		switch (data.data.taskname)
 		{
 			case 'TaskShieldsManual':
-				gamelog.log("Task shield started");
-				shieldActive = true;
+				// app task started - tell the ipad to start
+				gamelog.log("TaskShieldsManual start");
+				shieldsActive = true;
 				io.sockets.emit('new message', {
 					username: teamName,
 					message: {
@@ -174,16 +179,16 @@ function handleTaskStart(socket, data)
 						}
 					}
 				});
-					io.sockets.emit('new message', {
-						username: teamName,
-						message: {
-							event: 'state',
-							command: 'interrupt',
-							data: {
-								group: 'ipadshields'
-							}
+				io.sockets.emit('new message', {
+					username: teamName,
+					message: {
+						event: 'state',
+						command: 'interrupt',
+						data: {
+							group: 'ipadshields'
 						}
-					});
+					}
+				});
 				break;
 		}
 	}
@@ -191,17 +196,16 @@ function handleTaskStart(socket, data)
 
 function checkShieldResult(id)
 {
-	gamelog.log("shield times up - checking...");
-	if (id == pressID)
+	gamelog.log("checking shields result");
+	if (Date.now() - shieldsPressStartTime > stateDelay.TaskShield)
 	{
-		gamelog.log("Shield press  - good!");
+		gamelog.log("shield times up - checking...");
 		sendShieldResult(true);
 	}
 }
 
 function sendShieldResult(res)
 {
-	if (res) shieldActive = false;
 	io.sockets.emit('new message', {
 		username: teamName,
 		message: {
@@ -270,26 +274,19 @@ function handleTaskCheck(socket, data)
 				});
 				break;
 			case 'TaskIpadshieldsManual':
-				pressID += 1;
-				gamelog.log("Shield press started");
+				gamelog.log("TaskIpadshieldsManual check");
+				if (!shieldsActive) break;
 				if (data.data.result == "press")
 				{
-					pressStart = Date.now();
-					setTimeout(function () { checkShieldResult(pressID); }, stateDelay.TaskShield);
+					shieldsPressStartTime = Date.now();
+					shieldsTimeout = setTimeout(function () { checkShieldResult(); }, stateDelay.TaskShield);
 				}
 				else // release
 				{
-					if (!shieldActive) break;
-					if (Date.now() - pressStart > stateDelay.TaskShield)
-					{
-						gamelog.log("Shield press stopped - good!");
-						sendShieldResult(true);
-					} else
-					{
-						gamelog.log("Shield press stopped - bad!");
-						sendShieldResult(false);
-					}
-					pressStart = 0;
+					// if we released the button and the timeout didn't end
+					// it wasn't long enough
+					clearTimeout(shieldsTimeout);
+					shieldsPressStartTime = 0;
 				}
 
 				// notify all clients of this shield setting: press/release
@@ -305,7 +302,6 @@ function handleTaskCheck(socket, data)
 					}
 				});
 				break;
-
 		}
 	}
 }
@@ -344,6 +340,12 @@ function handleTaskStop(socket, data)
 						}
 					});
 				}, stateDelay.TaskSchematicsRendering);
+				break;
+			case 'TaskShieldsManual':
+				// app task stopped - tell the ipad to stop
+				gamelog.log("TaskShieldsManual stop");
+				console.log('TaskShieldsManual stop');
+				shieldsActive = false;
 				break;
 		}
 	}
