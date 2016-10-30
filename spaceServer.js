@@ -160,18 +160,30 @@ function handleTaskStart(socket, data)
 	{
 		switch (data.data.taskname)
 		{
-			case 'TaskShield':
+			case 'TaskShieldsManual':
 				gamelog.log("Task shield started");
 				shieldActive = true;
-				io.sockets.emit("new message", { event: "task", command: "start", data: { taskname: "TaskShield" } });
-				break;
-
-			case 'TaskShieldPress':
-				pressID += 1;
-				gamelog.log("Shield press started");
-				io.sockets.emit("new message", { event: "task", command: "start", data: { taskname: "TaskShieldPress" } }); // tell everyone
-				pressStart = Date.now();
-				setTimeout(function () { checkShieldResult(pressID); }, stateDelay.TaskShield);
+				io.sockets.emit('new message', {
+					username: teamName,
+					message: {
+						event: 'state',
+						command: 'set',
+						data: {
+							group: 'ipadshields',
+							state: 'manual'
+						}
+					}
+				});
+					io.sockets.emit('new message', {
+						username: teamName,
+						message: {
+							event: 'state',
+							command: 'interrupt',
+							data: {
+								group: 'ipadshields'
+							}
+						}
+					});
 				break;
 		}
 	}
@@ -196,7 +208,18 @@ function sendShieldResult(res)
 			event: 'task',
 			command: 'result',
 			data: {
-				taskname: 'TaskShield',
+				taskname: 'TaskShieldsManual',
+				result: res
+			}
+		}
+	});
+	io.sockets.emit('new message', {
+		username: teamName,
+		message: {
+			event: 'task',
+			command: 'result',
+			data: {
+				taskname: 'TaskIpadshieldsManual',
 				result: res
 			}
 		}
@@ -246,6 +269,43 @@ function handleTaskCheck(socket, data)
 					}
 				});
 				break;
+			case 'TaskIpadshieldsManual':
+				pressID += 1;
+				gamelog.log("Shield press started");
+				if (data.data.result == "press")
+				{
+					pressStart = Date.now();
+					setTimeout(function () { checkShieldResult(pressID); }, stateDelay.TaskShield);
+				}
+				else // release
+				{
+					if (!shieldActive) break;
+					if (Date.now() - pressStart > stateDelay.TaskShield)
+					{
+						gamelog.log("Shield press stopped - good!");
+						sendShieldResult(true);
+					} else
+					{
+						gamelog.log("Shield press stopped - bad!");
+						sendShieldResult(false);
+					}
+					pressStart = 0;
+				}
+
+				// notify all clients of this shield setting: press/release
+				io.sockets.emit('new message', {
+					username: teamName,
+					message: {
+						event: data.event,
+						command: data.command,
+						data: {
+							taskname: data.data.taskname,
+							result: data.data.result
+						}
+					}
+				});
+				break;
+
 		}
 	}
 }
@@ -256,20 +316,6 @@ function handleTaskStop(socket, data)
 	{
 		switch (data.data.taskname)
 		{
-			case 'TaskShieldPress':
-				if (!shieldActive) break;
-				io.sockets.emit("new message", { event: "task", command: "stop", data: { taskname: "TaskShieldPress" } }); // tell everyone
-				if (Date.now() - pressStart > stateDelay.TaskShield)
-				{
-					gamelog.log("Shield press stopped - good!");
-					sendShieldResult(true);
-				} else
-				{
-					gamelog.log("Shield press stopped - bad!");
-					sendShieldResult(false);
-				}
-				pressStart = 0;
-				break;
 			case 'TaskSchematicsRendering':
 				gamelog.log("TaskSchematicsRendering stop");
 				console.log('TaskSchematicsRendering setting Timeout');
