@@ -40,6 +40,9 @@ var teamName = null;
 var gamelog = null;
 var status = "Not playing";
 var dev = false;
+var pressStart = 0;
+var shieldActive = true;
+var pressID = 1;
 
 //////////////
 // 
@@ -72,12 +75,14 @@ function handleUser(socket, data)
 	gamelog = new GameLog(teamName);
 	gamelog.log("Ready for Game");
 	status = "Ready to play";
+	pressStart = 0;
+	shieldActive = false;
 	io.sockets.emit('new message', { username: teamName, message: { event: 'game', command: 'ready' } });
 }
 
 function handleDisconnect(socket, data)
 {
-  console.log('disconnection');
+	console.log('disconnection');
 }
 
 function handleGameDev(socket, data)
@@ -89,7 +94,8 @@ function handleGameDev(socket, data)
 		'TaskAibadPigpen': ['G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G', 'G']
 	};
 	stateDelay = {
-		'TaskSchematicsRendering': 5000
+		'TaskSchematicsRendering': 5000,
+		'TaskShield': 2000
 	}
 	if (teamName) io.sockets.emit('new message', { username: teamName, message: { event: 'game', command: 'dev' } });
 }
@@ -103,7 +109,8 @@ function handleGameNormal(socket, data)
 		'TaskAibadPigpen': ['E', 'L', 'E', 'M', 'E', 'N', 'T', 'P', 'R', 'O', 'D', 'U', 'C', 'T']
 	};
 	stateDelay = {
-		'TaskSchematicsRendering': 180000
+		'TaskSchematicsRendering': 180000,
+		'TaskShield': 120000
 	}
 	if (teamName) io.sockets.emit('new message', { username: teamName, message: { event: 'game', command: 'normal' } });
 }
@@ -149,7 +156,50 @@ function handleGameStop(socket, data)
 
 function handleTaskStart(socket, data)
 {
-	gamelog.log("Task started");
+	if (data.data && data.data.taskname)
+	{
+		switch (data.data.taskname)
+		{
+			case 'TaskShield':
+				gamelog.log("Task shield started");
+				shieldActive = true;
+				io.sockets.emit("new message", { event: "task", command: "start", data: { taskname: "TaskShield" } });
+				break;
+
+			case 'TaskShieldPress':
+				pressID += 1;
+				gamelog.log("Shield press started");
+				pressStart = Date.now();
+				setTimeout(function () { checkShieldResult(pressID); }, stateDelay.TaskShield);
+				break;
+		}
+	}
+}
+
+function checkShieldResult(id)
+{
+	gamelog.log("shield times up - checking...");
+	if (id == pressID)
+	{
+		gamelog.log("Shield press  - good!");
+		sendShieldResult(true);
+	}
+}
+
+function sendShieldResult(res)
+{
+	if (res) shieldActive = false;
+	io.sockets.emit('new message', {
+		username: teamName,
+		message: {
+			event: 'task',
+			command: 'result',
+			data: {
+				taskname: 'TaskShield',
+				result: res
+			}
+		}
+	});
 }
 
 function handleTaskCheck(socket, data)
@@ -205,6 +255,19 @@ function handleTaskStop(socket, data)
 	{
 		switch (data.data.taskname)
 		{
+			case 'TaskShieldPress':
+				if (!shieldActive) break;
+				if (Date.now() - pressStart > stateDelay.TaskShield)
+				{
+					gamelog.log("Shield press stopped - good!");
+					sendShieldResult(true);
+				} else
+				{
+					gamelog.log("Shield press stopped - bad!");
+					sendShieldResult(false);
+				}
+				pressStart = 0;
+				break;
 			case 'TaskSchematicsRendering':
 				gamelog.log("TaskSchematicsRendering stop");
 				console.log('TaskSchematicsRendering setting Timeout');
