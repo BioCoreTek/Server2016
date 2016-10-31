@@ -47,6 +47,8 @@ var shieldsPressStartTime = 0;
 var shieldsActive = false;
 // timeout to clear for shields
 var shieldsTimeout = null;
+var shieldsClearCnt;
+var shieldsClearCntMax = 4;
 
 //////////////
 // 
@@ -81,6 +83,7 @@ function handleUser(socket, data)
 	status = "Ready to play";
 	shieldsPressStartTime = 0;
 	shieldsActive = false;
+	shieldsClearCnt = 0;
 	io.sockets.emit('new message', { username: teamName, message: { event: 'game', command: 'ready' } });
 }
 
@@ -114,7 +117,7 @@ function handleGameNormal(socket, data)
 	};
 	stateDelay = {
 		'TaskSchematicsRendering': 180000,	// 3 minutes
-		'TaskShield': 120000	// 2 minutes
+		'TaskShield': 60000	// 1 minutes
 	}
 	if (teamName) io.sockets.emit('new message', { username: teamName, message: { event: 'game', command: 'normal' } });
 }
@@ -294,15 +297,20 @@ function handleTaskCheck(socket, data)
 				{
 					gamelog.log("TaskIpadshieldsManual press");
 					shieldsPressStartTime = Date.now();
-					shieldsTimeout = setTimeout(function () { checkShieldResult(); }, stateDelay.TaskShield);
+					if (!shieldsTimeout)
+						shieldsTimeout = setTimeout(function () { checkShieldResult(); }, stateDelay.TaskShield);
 				}
 				else // release
 				{
 					// if we released the button and the timeout didn't end
 					// it wasn't long enough
 					gamelog.log("TaskIpadshieldsManual release");
-					clearTimeout(shieldsTimeout);
-					shieldsPressStartTime = 0;
+					if (shieldsClearCnt < shieldsClearCntMax)
+					{
+						clearTimeout(shieldsTimeout);
+						shieldsPressStartTime = 0;
+						shieldsClearCnt++;
+					}
 				}
 
 				// notify all clients of this shield setting: press/release
