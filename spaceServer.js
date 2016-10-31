@@ -141,6 +141,19 @@ function handleMessage(socket, data)
 		else if (data.command == "check") handleTaskCheck(socket, data);
 		else if (data.command == "stop") handleTaskStop(socket, data);
 	}
+	else if (data.event == "state")
+	{
+		// just re-broadcast state events - from admin ui
+		io.sockets.emit('new message', {
+			username: teamName,
+			message: {
+				event: data.event,
+				command: data.command,
+				data: data.data
+			}
+		});
+
+	}
 }
 
 function handleGameStart(socket, data)
