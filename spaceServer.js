@@ -209,8 +209,9 @@ function handleTaskStart(socket, data)
 
 function checkShieldResult()
 {
-	gamelog.log("TaskIpadshieldsManual checking shields result");
-	if (Date.now() - shieldsPressStartTime > stateDelay.TaskShield)
+	var d = Date.now();
+	gamelog.log("TaskIpadshieldsManual checking shields result, time:" + (d - shieldsPressStartTime));
+	if (d - shieldsPressStartTime >= stateDelay.TaskShield)
 	{
 		gamelog.log("TaskIpadshieldsManual shield times up");
 		sendShieldResult(true);
