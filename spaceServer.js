@@ -84,6 +84,7 @@ function handleUser(socket, data)
 	shieldsPressStartTime = 0;
 	shieldsActive = false;
 	shieldsClearCnt = 0;
+	shieldsTimeout = null;
 	io.sockets.emit('new message', { username: teamName, message: { event: 'game', command: 'ready' } });
 }
 
@@ -142,6 +143,7 @@ function handleMessage(socket, data)
 		if (!data.command) return;
 		else if (data.command == "start") handleTaskStart(socket, data);
 		else if (data.command == "check") handleTaskCheck(socket, data);
+		else if (data.command == "result") handleTaskResult(socket, data);
 		else if (data.command == "stop") handleTaskStop(socket, data);
 	}
 	else if (data.event == "state")
@@ -214,11 +216,11 @@ function checkShieldResult()
 {
 	var d = Date.now();
 	gamelog.log("TaskIpadshieldsManual checking shields result, time:" + (d - shieldsPressStartTime));
-	if (d - shieldsPressStartTime >= stateDelay.TaskShield)
-	{
+//	if (d - shieldsPressStartTime >= (stateDelay.TaskShield - 2000)
+//	{
 		gamelog.log("TaskIpadshieldsManual shield times up");
 		sendShieldResult(true);
-	}
+//	}
 }
 
 function sendShieldResult(res)
@@ -295,10 +297,13 @@ function handleTaskCheck(socket, data)
 				if (!shieldsActive) break;
 				if (data.data.result == "press")
 				{
-					gamelog.log("TaskIpadshieldsManual press");
-					shieldsPressStartTime = Date.now();
+					gamelog.log("TaskIpadshieldsManual press " + shieldsTimeout);
 					if (!shieldsTimeout)
+					{
+						gamelog.log("TaskIpadshieldsManual press set timeout " + shieldsTimeout);
 						shieldsTimeout = setTimeout(function () { checkShieldResult(); }, stateDelay.TaskShield);
+						shieldsPressStartTime = Date.now();
+					}
 				}
 				else // release
 				{
@@ -307,7 +312,9 @@ function handleTaskCheck(socket, data)
 					gamelog.log("TaskIpadshieldsManual release");
 					if (shieldsClearCnt < shieldsClearCntMax)
 					{
+						gamelog.log("TaskIpadshieldsManual release count " + shieldsClearCnt);
 						clearTimeout(shieldsTimeout);
+						shieldsTimeout = null;
 						shieldsPressStartTime = 0;
 						shieldsClearCnt++;
 					}
@@ -328,6 +335,19 @@ function handleTaskCheck(socket, data)
 				break;
 		}
 	}
+}
+
+function handleTaskResult(socket, data)
+{
+	// just re-broadcast task result events - from admin ui
+	io.sockets.emit('new message', {
+		username: teamName,
+		message: {
+			event: data.event,
+			command: data.command,
+			data: data.data
+		}
+	});
 }
 
 function handleTaskStop(socket, data)
